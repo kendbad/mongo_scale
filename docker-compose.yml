@@ -1,0 +1,184 @@
+# Project: [mongo scale]
+# Author: [phucmmo.com]
+version: '3.8'
+
+x-mongo: &mongo
+  image: mongo:7.0.7
+  restart: on-failure
+  #cpus: 0.2
+  #mem_limit: 200000000
+
+x-shardsvr-01: &shardsvr-01
+  <<: *mongo
+  command: mongod --auth --port 27017 --shardsvr --replSet shard-01 --dbpath /data/db --keyFile /mongodb.key --config /mongod.conf
+
+x-shardsvr-02: &shardsvr-02
+  <<: *mongo
+  command: mongod --auth --port 27017 --shardsvr --replSet shard-02 --dbpath /data/db --keyFile /mongodb.key --config /mongod.conf
+
+x-shardsvr-03: &shardsvr-03
+  <<: *mongo
+  command: mongod --auth --port 27017 --shardsvr --replSet shard-03 --dbpath /data/db --keyFile /mongodb.key --config /mongod.conf
+
+x-configsvr: &configsvr
+  <<: *mongo
+  command: mongod --auth --port 27017 --configsvr --replSet configsvr --dbpath /data/db --keyFile /mongodb.key --config /mongod.conf
+
+x-router: &router
+  <<: *mongo
+  entrypoint: mongos --bind_ip 0.0.0.0 --port 27017 --configdb 
+  command: configsvr/configsvr-a:27017,configsvr-b:27017,configsvr-c:27017 --keyFile /mongodb.key --config /mongod.conf
+
+x-mongodb-key: &mongodb-key ./mongodb.key:/mongodb.key
+
+x-mongod-conf: &mongod-conf ./mongod.conf:/mongod.conf
+  
+services:
+  configsvr-a:
+    <<: *configsvr
+    hostname: 'configsvr-a'
+    container_name: configsvr-a
+    ports: 
+      - 10001:27017 
+    volumes:
+      - *mongodb-key
+      - *mongod-conf
+      - ./data/configsvr-a:/data/db
+
+  configsvr-b:
+    <<: *configsvr
+    hostname: 'configsvr-b'
+    container_name: configsvr-b
+    ports: 
+      - 10002:27017 
+    volumes:
+      - *mongodb-key
+      - *mongod-conf
+      - ./data/configsvr-b:/data/db
+
+  configsvr-c:
+    <<: *configsvr
+    hostname: 'configsvr-c'
+    container_name: configsvr-c
+    ports: 
+      - 10003:27017 
+    volumes:
+      - *mongodb-key
+      - *mongod-conf
+      - ./data/configsvr-c:/data/db
+
+  shard-01a:
+    <<: *shardsvr-01
+    hostname: 'shard-01a'
+    container_name: shard-01a
+    volumes:
+      - *mongodb-key
+      - *mongod-conf
+      - ./data/shard-01a:/data/db
+
+  shard-01b:
+    <<: *shardsvr-01
+    hostname: 'shard-01b'
+    container_name: shard-01b
+    volumes:
+      - *mongodb-key
+      - *mongod-conf
+      - ./data/shard-01b:/data/db
+
+  shard-01c:
+    <<: *shardsvr-01
+    hostname: 'shard-01c'
+    container_name: shard-01c
+    volumes:
+      - *mongodb-key
+      - *mongod-conf
+      - ./data/shard-01c:/data/db
+
+  shard-02a:
+    <<: *shardsvr-02
+    hostname: 'shard-02a'
+    container_name: shard-02a
+    volumes:
+      - *mongodb-key
+      - *mongod-conf
+      - ./data/shard-02a:/data/db
+
+  shard-02b:
+    <<: *shardsvr-02
+    hostname: 'shard-02b'
+    container_name: shard-02b
+    volumes:
+      - *mongodb-key
+      - *mongod-conf
+      - ./data/shard-02b:/data/db
+
+  shard-02c:
+    <<: *shardsvr-02
+    hostname: 'shard-02c'
+    container_name: shard-02c
+    volumes:
+      - *mongodb-key
+      - *mongod-conf
+      - ./data/shard-02c:/data/db
+
+  shard-03a:
+    <<: *shardsvr-03
+    hostname: 'shard-03a'
+    container_name: shard-03a
+    volumes:
+      - *mongodb-key
+      - *mongod-conf
+      - ./data/shard-03a:/data/db
+
+  shard-03b:
+    <<: *shardsvr-03
+    hostname: 'shard-03b'
+    container_name: shard-03b
+    volumes:
+      - *mongodb-key
+      - *mongod-conf
+      - ./data/shard-03b:/data/db
+
+  shard-03c:
+    <<: *shardsvr-03
+    hostname: 'shard-03c'
+    container_name: shard-03c
+    volumes:
+      - *mongodb-key
+      - *mongod-conf
+      - ./data/shard-03c:/data/db
+
+  router-01:
+    <<: *router
+    hostname: 'router-01'
+    container_name: router-01
+    ports: 
+      - 30000:27017
+    volumes:
+      - *mongodb-key
+      - *mongod-conf
+      - ./data/router-01:/data/db
+      
+  router-02:
+    <<: *router
+    hostname: 'router-02'
+    container_name: router-02
+    ports: 
+      - 30001:27017
+    volumes:
+      - *mongodb-key
+      - *mongod-conf
+      - ./data/router-02:/data/db
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: mongo-express
+    restart: unless-stopped
+    ports:
+      - 8886:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${U}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${P}
+      ME_CONFIG_BASICAUTH_USERNAME: ${U}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${P}
+      ME_CONFIG_MONGODB_URL: mongodb://${U}:${P}@router-01:27017,router-02:27017
