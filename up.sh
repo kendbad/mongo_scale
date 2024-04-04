@@ -105,7 +105,7 @@ if wait_for_connection "router-01" "$max_retries" "$retry_interval"; then
 
 #tạo admin trên configsvr sẽ đồng bộ lên router nhưng không đồng bộ lên các shard
 
-   #execute_mongosh_with_eval "configsvr-a" "$eval_createUser"
+   execute_mongosh_with_eval "configsvr-a" "$eval_createUser"
    execute_mongosh_with_eval "router-01" "$eval_createUser"
 
    execute_mongosh_with_eval "shard-01a" "$eval_createUser"
