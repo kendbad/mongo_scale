@@ -102,8 +102,7 @@ if wait_for_connection "router-01" "$max_retries" "$retry_interval"; then
    eval_createUser="admin = db.getSiblingDB('admin'); admin.createUser({ user: '$U', pwd: '$P', roles: [{ role: 'root', db: 'admin' }] });"
    
    echo "Thực hiện tạo người dùng admin!"
-
-#tạo admin trên configsvr sẽ đồng bộ lên router nhưng không đồng bộ lên các shard
+   #tạo admin trên configsvr sẽ đồng bộ lên router nhưng không đồng bộ lên các shard
 
    #execute_mongosh_with_eval "configsvr-a" "$eval_createUser"
    execute_mongosh_with_eval "router-01" "$eval_createUser"
